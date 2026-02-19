@@ -116,8 +116,9 @@ public class KnowledgeService {
         if (lowerContext.contains("portable") && lowerClause.contains("portable")) score += 0.2;
         if (lowerContext.contains("accuracy") && lowerClause.contains("accuracy")) score += 0.25;
         
-        // Add some variance to simulate embedding model
-        score += (Math.random() * 0.1 - 0.05);
+        // Deterministic scoring (removed randomness for consistency)
+        // Add small deterministic variance based on clause text length
+        score += (clause.getClause().length() % 10) * 0.01;
         
         return Math.min(1.0, Math.max(0.0, score));
     }

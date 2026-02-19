@@ -2,25 +2,13 @@ spring:
   application:
     name: medtwin-backend
   
-  datasource:
-    url: jdbc:h2:mem:medtwindb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: 
+  main:
+    allow-circular-references: true
   
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-  
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.H2Dialect
+  data:
+    mongodb:
+      uri: mongodb+srv://medtwinUser:prasad777@medtwin-cluster.uryx4jo.mongodb.net/medtwin?retryWrites=true&w=majority&appName=medtwin-cluster
+      database: medtwin
 
 server:
   port: 8080
@@ -47,3 +35,4 @@ logging:
   level:
     com.medtwin: DEBUG
     org.springframework.web: INFO
+    org.springframework.data.mongodb: DEBUG

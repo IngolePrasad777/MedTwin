@@ -28,7 +28,7 @@ public class SystemOrchestrationService {
     /**
      * Master Pipeline - Full system analysis in one call
      */
-    public SystemAnalysisResult runFullAnalysis(Long architectureId, SimulationEngineService.SimulationParameters params) {
+    public SystemAnalysisResult runFullAnalysis(String architectureId, SimulationEngineService.SimulationParameters params) {
         log.info("Starting full system analysis for architecture ID: {}", architectureId);
         
         // Step 1: Run simulation with anomaly detection
@@ -80,7 +80,7 @@ public class SystemOrchestrationService {
     /**
      * Executive Summary - Dashboard-ready overview
      */
-    public ExecutiveSummary getExecutiveSummary(Long architectureId) {
+    public ExecutiveSummary getExecutiveSummary(String architectureId) {
         log.info("Generating executive summary for architecture ID: {}", architectureId);
         
         SystemArchitecture architecture = architectureService.getArchitecture(architectureId);
@@ -105,7 +105,7 @@ public class SystemOrchestrationService {
                 .collect(Collectors.toList());
         
         List<String> topRecommendations = insights.stream()
-                .map(AIInsight::getRecommendation)
+                .flatMap(i -> i.getRecommendations() != null ? i.getRecommendations().stream() : java.util.stream.Stream.empty())
                 .filter(r -> r != null && !r.isEmpty())
                 .limit(3)
                 .collect(Collectors.toList());

@@ -18,6 +18,9 @@ MedTwin is a medical device digital twin platform with AI-powered optimization, 
 3. **Global Exception Handler** - Structured error responses (no stack traces)
 4. **Input Validation** - Guardrails on all parameters (battery 1000-10000, sampling 10-500, etc.)
 5. **Engine Version** - v1.2.0 in all responses for product polish
+6. **Null Safety** - All lists default to empty arrays, no null returns
+7. **Deterministic Behavior** - Same input → same output (removed randomness)
+8. **Async Timeout Protection** - 5-second timeout on async operations
 
 ---
 
@@ -69,7 +72,7 @@ curl http://localhost:8080/api/health
 - **34 API Endpoints** (+2 orchestration endpoints)
 - **12 Domain Models** (+2 orchestration models)
 - **5 Repositories**
-- **H2 In-Memory Database**
+- **MongoDB Atlas Database** (Cloud-hosted, production-ready)
 - **Global Exception Handler**
 - **Input Validation on All Parameters**
 - **Engine Version: 1.2.0**
@@ -532,12 +535,12 @@ curl http://localhost:8080/api/system/executive-summary/1
 10. **ConstraintViolation** - Validation violations
 
 ### Database
-- **H2 In-Memory Database**
-- **Auto-configured** (no setup required)
-- **H2 Console**: http://localhost:8080/h2-console
-  - JDBC URL: `jdbc:h2:mem:medtwin`
-  - Username: `sa`
-  - Password: (empty)
+- **MongoDB Atlas** (Cloud-hosted)
+- **Connection**: mongodb+srv://medtwin-cluster.uryx4jo.mongodb.net/medtwin
+- **Auto-configured** (no local setup required)
+- **Flexible schema** for rapid iteration
+- **Embedded documents** for performance
+- **@DBRef** for relationships
 
 ---
 
@@ -711,3 +714,78 @@ The MedTwin backend now fully supports all major claims in the architecture diag
 5. **Version Control** - Engine v1.2.0 in all responses
 
 **The credibility gap is CLOSED. The backend is production-ready and demo-defensible.**
+
+---
+
+## 🧪 Pre-Demo Stress Testing Checklist
+
+Before the demo, verify these scenarios work without crashes:
+
+### 1. Normal Flow
+```bash
+# Create requirement → Generate architecture → Run full analysis
+curl -X POST http://localhost:8080/api/requirements -H "Content-Type: application/json" -d '{"deviceType":"Ventilator","targetMarket":"EU","portability":"Portable","batteryCapacity":5000,"samplingRate":100,"targetAirflow":50,"processingPower":80,"thermalThreshold":55,"powerMode":"BALANCED","accuracyRequirement":"High"}'
+
+curl -X POST http://localhost:8080/api/architecture/generate/1
+
+curl -X POST http://localhost:8080/api/system/full-analysis/1 -H "Content-Type: application/json" -d '{"scenarioName":"Normal","batterySize":5000,"samplingRate":100,"airflowTarget":50,"processingPower":75,"thermalThreshold":55,"powerMode":"BALANCED"}'
+```
+
+### 2. Extreme Values (High Risk)
+```bash
+# Should trigger HIGH anomaly severity
+curl -X POST http://localhost:8080/api/simulation/run/1 -H "Content-Type: application/json" -d '{"scenarioName":"Extreme","batterySize":2000,"samplingRate":200,"airflowTarget":80,"processingPower":95,"thermalThreshold":45,"powerMode":"PERFORMANCE"}'
+```
+
+### 3. Invalid Values (Should Return 400)
+```bash
+# Battery too low (< 1000)
+curl -X POST http://localhost:8080/api/simulation/run/1 -H "Content-Type: application/json" -d '{"scenarioName":"Invalid","batterySize":500,"samplingRate":100,"airflowTarget":50,"processingPower":75,"thermalThreshold":55,"powerMode":"BALANCED"}'
+
+# Sampling rate too high (> 500)
+curl -X POST http://localhost:8080/api/simulation/run/1 -H "Content-Type: application/json" -d '{"scenarioName":"Invalid","batterySize":5000,"samplingRate":600,"airflowTarget":50,"processingPower":75,"thermalThreshold":55,"powerMode":"BALANCED"}'
+```
+
+### 4. Async Operations
+```bash
+# Start multiple async simulations
+curl -X POST http://localhost:8080/api/simulation/run-async/1 -H "Content-Type: application/json" -d '{"scenarioName":"Async1","batterySize":5000,"samplingRate":100,"airflowTarget":50,"processingPower":75,"thermalThreshold":55,"powerMode":"BALANCED"}'
+
+curl -X POST http://localhost:8080/api/simulation/run-async/1 -H "Content-Type: application/json" -d '{"scenarioName":"Async2","batterySize":4500,"samplingRate":90,"airflowTarget":45,"processingPower":70,"thermalThreshold":55,"powerMode":"ECO"}'
+```
+
+### 5. Optimization Twice
+```bash
+# Run optimization multiple times (should be deterministic)
+curl http://localhost:8080/api/simulation/optimize-detailed/1
+curl http://localhost:8080/api/simulation/optimize-detailed/1
+# Results should be identical
+```
+
+### 6. Executive Summary
+```bash
+# Should work even with no simulations
+curl http://localhost:8080/api/system/executive-summary/1
+```
+
+### 7. Non-existent IDs (Should Return 400)
+```bash
+curl http://localhost:8080/api/architecture/999
+curl http://localhost:8080/api/simulation/999
+```
+
+### Expected Behaviors
+- ✅ Normal flow completes without errors
+- ✅ Extreme values trigger HIGH severity anomalies
+- ✅ Invalid values return 400 with clear error message
+- ✅ Async operations return 202 ACCEPTED immediately
+- ✅ Optimization is deterministic (same results every time)
+- ✅ Executive summary handles missing data gracefully
+- ✅ Non-existent IDs return structured error (not 500)
+
+### Critical: No Crashes
+- No NullPointerException
+- No infinite loops in optimization
+- No hanging async operations
+- No stack traces in responses
+

@@ -27,8 +27,7 @@ public class DigitalTwinStateService {
     private final ArchitectureGenerationService architectureService;
     private final Random random = new Random();
     
-    @Transactional
-    public DigitalTwinState createInitialState(Long architectureId) {
+    public DigitalTwinState createInitialState(String architectureId) {
         log.info("Creating initial digital twin state for architecture ID: {}", architectureId);
         
         SystemArchitecture architecture = architectureService.getArchitecture(architectureId);
@@ -50,6 +49,7 @@ public class DigitalTwinStateService {
                 .isLive(true)
                 .build();
         
+        state.onCreate();
         return stateRepository.save(state);
     }
     
@@ -61,8 +61,7 @@ public class DigitalTwinStateService {
         return states;
     }
     
-    @Transactional
-    public DigitalTwinState updateState(Long architectureId, DigitalTwinState updatedState) {
+    public DigitalTwinState updateState(String architectureId, DigitalTwinState updatedState) {
         log.debug("Updating digital twin state for architecture ID: {}", architectureId);
         
         DigitalTwinState currentState = getCurrentState(architectureId);
@@ -154,18 +153,17 @@ public class DigitalTwinStateService {
         }
     }
     
-    public DigitalTwinState getCurrentState(Long architectureId) {
+    public DigitalTwinState getCurrentState(String architectureId) {
         return stateRepository.findFirstByArchitectureIdAndIsLiveTrueOrderByTimestampDesc(architectureId)
                 .orElseThrow(() -> new IllegalArgumentException("No live state found for architecture ID: " + architectureId));
     }
     
-    public List<DigitalTwinState> getStateHistory(Long architectureId, int limit) {
+    public List<DigitalTwinState> getStateHistory(String architectureId, int limit) {
         List<DigitalTwinState> states = stateRepository.findByArchitectureIdOrderByTimestampDesc(architectureId);
         return states.stream().limit(limit).toList();
     }
     
-    @Transactional
-    public void deactivateState(Long architectureId) {
+    public void deactivateState(String architectureId) {
         DigitalTwinState state = getCurrentState(architectureId);
         state.setIsLive(false);
         state.setStatus(DigitalTwinState.OperationalStatus.OFFLINE);

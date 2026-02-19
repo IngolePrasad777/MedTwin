@@ -25,10 +25,8 @@ public class SimulationEngineService {
     private final SimulationRunRepository simulationRepository;
     private final ArchitectureGenerationService architectureService;
     private final ConstraintValidationService constraintValidationService;
-    private final AIInsightService aiInsightService;
     
-    @Transactional
-    public SimulationRun runSimulation(Long architectureId, SimulationParameters params) {
+    public SimulationRun runSimulation(String architectureId, SimulationParameters params) {
         log.info("Starting simulation for architecture ID: {} with scenario: {}", architectureId, params.getScenarioName());
         
         SystemArchitecture architecture = architectureService.getArchitecture(architectureId);
@@ -90,6 +88,9 @@ public class SimulationEngineService {
         simulation.setStatus(SimulationRun.SimulationStatus.COMPLETED);
         simulation.setCompletedAt(LocalDateTime.now());
         
+        // Initialize timestamps
+        simulation.onCreate();
+        
         SimulationRun saved = simulationRepository.save(simulation);
         
         // 🔥 INTEGRATION: Validate simulation against constraints
@@ -97,7 +98,7 @@ public class SimulationEngineService {
         ConstraintValidationService.ValidationResult validation = 
                 constraintValidationService.validateSimulation(saved);
         
-        // 🔥 INTEGRATION: If violations exist, adjust risk and generate critical insights
+        // 🔥 INTEGRATION: If violations exist, adjust risk
         if (!validation.isPassed()) {
             log.warn("Simulation has {} constraint violations", validation.getViolations().size());
             
@@ -109,12 +110,7 @@ public class SimulationEngineService {
             saved.setRiskScore(Math.min(100, saved.getRiskScore() + riskPenalty));
             saved.setRiskLevel(calculateRiskLevel(saved.getRiskScore()));
             
-            // Generate critical insights for violations
-            for (ConstraintValidationService.ConstraintViolation violation : validation.getViolations()) {
-                if ("CRITICAL".equals(violation.getSeverity())) {
-                    aiInsightService.generateConstraintViolationInsight(saved, violation);
-                }
-            }
+            // Note: Critical insights for violations can be generated via /api/insights/simulation/{id} endpoint
             
             simulationRepository.save(saved);
         }
@@ -244,10 +240,10 @@ public class SimulationEngineService {
             double thermalLoad = Math.min(80, results.getThermalLoad() + (hour * 0.8) + Math.sin(hour * 0.3) * 3);
             double efficiency = Math.max(10, results.getEfficiency() - (hour * (100 - results.getEfficiency()) / 30) + Math.sin(hour * 0.5) * 5);
             double powerConsumption = (params.getBatterySize() / 1000.0) * 3.7 / results.getBatteryLife();
-            double riskScore = Math.min(100, results.getRiskScore() + (hour * 1.2) + Math.random() * 5);
+            // Deterministic risk progression (removed Math.random for consistency)
+            double riskScore = Math.min(100, results.getRiskScore() + (hour * 1.2) + Math.sin(hour * 0.3) * 3);
             
             SimulationDataPoint dataPoint = SimulationDataPoint.builder()
-                    .simulationRun(simulation)
                     .timeStep(hour)
                     .batteryLevel(batteryLevel)
                     .thermalLoad(thermalLoad)
@@ -441,22 +437,22 @@ public class SimulationEngineService {
         return String.join(", ", types);
     }
     
-    public SimulationRun getSimulation(Long id) {
+    public SimulationRun getSimulation(String id) {
         return simulationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Simulation not found with ID: " + id));
     }
     
-    public List<SimulationRun> getSimulationsByArchitecture(Long architectureId) {
+    public List<SimulationRun> getSimulationsByArchitecture(String architectureId) {
         return simulationRepository.findByArchitectureIdOrderByStartedAtDesc(architectureId);
     }
     
     /**
-     * 🔥 ASYNC SIMULATION EXECUTION
+     * 🔥 ASYNC SIMULATION EXECUTION with timeout protection
      * Runs simulation in background thread for non-blocking operation
      * This is the "Celery + Redis async queue" from the diagram
      */
     @org.springframework.scheduling.annotation.Async
-    public java.util.concurrent.CompletableFuture<SimulationRun> runSimulationAsync(Long architectureId, SimulationParameters params) {
+    public java.util.concurrent.CompletableFuture<SimulationRun> runSimulationAsync(String architectureId, SimulationParameters params) {
         log.info("Starting ASYNC simulation for architecture ID: {} with scenario: {}", architectureId, params.getScenarioName());
         
         try {
@@ -475,10 +471,33 @@ public class SimulationEngineService {
     }
     
     /**
+     * 🔥 ASYNC SIMULATION with timeout protection (5 seconds max)
+     */
+    public SimulationRun runSimulationWithTimeout(String architectureId, SimulationParameters params) {
+        try {
+            return runSimulationAsync(architectureId, params)
+                    .orTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+                    .get();
+        } catch (java.util.concurrent.ExecutionException e) {
+            // Check if it's a timeout wrapped in ExecutionException
+            if (e.getCause() instanceof java.util.concurrent.TimeoutException) {
+                log.error("Simulation timed out after 5 seconds");
+                throw new IllegalStateException("Simulation timed out. Please try with simpler parameters.");
+            }
+            log.error("Simulation execution failed: {}", e.getMessage());
+            throw new IllegalStateException("Simulation failed: " + e.getMessage());
+        } catch (InterruptedException e) {
+            log.error("Simulation was interrupted");
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Simulation was interrupted.");
+        }
+    }
+    
+    /**
      * Priority 2: Generate AI-optimized parameters with Before/After comparison
      * NOW WITH ITERATIVE FEEDBACK LOOP - This is the demo mic-drop moment!
      */
-    public OptimizationResult generateOptimizedParametersWithComparison(Long architectureId) {
+    public OptimizationResult generateOptimizedParametersWithComparison(String architectureId) {
         SystemArchitecture architecture = architectureService.getArchitecture(architectureId);
         DeviceRequirement requirement = architecture.getRequirement();
         
@@ -748,7 +767,7 @@ public class SimulationEngineService {
      * Priority 6: Scenario Comparison
      * Compare two different configurations side-by-side
      */
-    public ScenarioComparison compareScenarios(Long architectureId, SimulationParameters scenarioA, SimulationParameters scenarioB) {
+    public ScenarioComparison compareScenarios(String architectureId, SimulationParameters scenarioA, SimulationParameters scenarioB) {
         log.info("Comparing scenarios: {} vs {}", scenarioA.getScenarioName(), scenarioB.getScenarioName());
         
         // Run both simulations
@@ -907,7 +926,7 @@ public class SimulationEngineService {
     /**
      * Generate AI-optimized parameters (simple version for backward compatibility)
      */
-    public SimulationParameters generateOptimizedParameters(Long architectureId) {
+    public SimulationParameters generateOptimizedParameters(String architectureId) {
         SystemArchitecture architecture = architectureService.getArchitecture(architectureId);
         DeviceRequirement requirement = architecture.getRequirement();
         

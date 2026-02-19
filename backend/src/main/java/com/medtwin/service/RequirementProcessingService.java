@@ -20,7 +20,6 @@ public class RequirementProcessingService {
     
     private final DeviceRequirementRepository requirementRepository;
     
-    @Transactional
     public DeviceRequirement processRequirement(DeviceRequirement requirement) {
         log.info("Processing requirement for device type: {}", requirement.getDeviceType());
         
@@ -29,6 +28,9 @@ public class RequirementProcessingService {
         
         // Set defaults if not provided
         applyDefaults(requirement);
+        
+        // Initialize timestamps
+        requirement.onCreate();
         
         // Save requirement
         DeviceRequirement saved = requirementRepository.save(requirement);
@@ -90,7 +92,7 @@ public class RequirementProcessingService {
         log.debug("Applied default values to requirement");
     }
     
-    public DeviceRequirement getRequirement(Long id) {
+    public DeviceRequirement getRequirement(String id) {
         return requirementRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Requirement not found with ID: " + id));
     }
@@ -103,8 +105,7 @@ public class RequirementProcessingService {
         return requirementRepository.findByDeviceType(deviceType);
     }
     
-    @Transactional
-    public DeviceRequirement updateRequirement(Long id, DeviceRequirement updatedRequirement) {
+    public DeviceRequirement updateRequirement(String id, DeviceRequirement updatedRequirement) {
         DeviceRequirement existing = getRequirement(id);
         
         // Update fields
@@ -121,6 +122,7 @@ public class RequirementProcessingService {
         existing.setThermalThreshold(updatedRequirement.getThermalThreshold());
         existing.setPowerMode(updatedRequirement.getPowerMode());
         
+        existing.onUpdate();
         validateRequirement(existing);
         
         return requirementRepository.save(existing);

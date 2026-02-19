@@ -24,11 +24,11 @@ import java.util.List;
 public class AIInsightService {
     
     private final AIInsightRepository insightRepository;
+    @org.springframework.context.annotation.Lazy
     private final SimulationEngineService simulationService;
     private final ArchitectureGenerationService architectureService;
     
-    @Transactional
-    public List<AIInsight> generateInsightsForSimulation(Long simulationId) {
+    public List<AIInsight> generateInsightsForSimulation(String simulationId) {
         log.info("Generating AI insights for simulation ID: {}", simulationId);
         
         SimulationRun simulation = simulationService.getSimulation(simulationId);
@@ -75,8 +75,7 @@ public class AIInsightService {
         return saved;
     }
     
-    @Transactional
-    public List<AIInsight> generateInsightsForArchitecture(Long architectureId) {
+    public List<AIInsight> generateInsightsForArchitecture(String architectureId) {
         log.info("Generating AI insights for architecture ID: {}", architectureId);
         
         SystemArchitecture architecture = architectureService.getArchitecture(architectureId);
@@ -361,16 +360,19 @@ public class AIInsightService {
                 .build();
     }
     
-    public List<AIInsight> getInsightsForSimulation(Long simulationId) {
-        return insightRepository.findBySimulationRunIdOrderByGeneratedAtDesc(simulationId);
+    public List<AIInsight> getInsightsForSimulation(String simulationId) {
+        List<AIInsight> insights = insightRepository.findBySimulationRunIdOrderByGeneratedAtDesc(simulationId);
+        return insights != null ? insights : new ArrayList<>();
     }
     
-    public List<AIInsight> getInsightsForArchitecture(Long architectureId) {
-        return insightRepository.findByArchitectureIdOrderByGeneratedAtDesc(architectureId);
+    public List<AIInsight> getInsightsForArchitecture(String architectureId) {
+        List<AIInsight> insights = insightRepository.findByArchitectureIdOrderByGeneratedAtDesc(architectureId);
+        return insights != null ? insights : new ArrayList<>();
     }
     
     public List<AIInsight> getCriticalInsights() {
-        return insightRepository.findBySeverityOrderByGeneratedAtDesc(AIInsight.InsightSeverity.CRITICAL);
+        List<AIInsight> insights = insightRepository.findBySeverityOrderByGeneratedAtDesc(AIInsight.InsightSeverity.CRITICAL);
+        return insights != null ? insights : new ArrayList<>();
     }
     
     /**
@@ -402,7 +404,7 @@ public class AIInsightService {
      * Priority 4: Generate Compliance Checks
      * Enterprise-grade compliance traceability
      */
-    public List<ComplianceCheck> generateComplianceChecks(Long simulationId) {
+    public List<ComplianceCheck> generateComplianceChecks(String simulationId) {
         log.info("Generating compliance checks for simulation ID: {}", simulationId);
         
         SimulationRun simulation = simulationService.getSimulation(simulationId);

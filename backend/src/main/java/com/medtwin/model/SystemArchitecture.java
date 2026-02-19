@@ -1,6 +1,8 @@
 package com.medtwin.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,10 +10,11 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-@Entity
-@Table(name = "system_architectures")
+@Document(collection = "system_architectures")
 @Data
 @Builder
 @NoArgsConstructor
@@ -19,53 +22,32 @@ import java.util.List;
 public class SystemArchitecture {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
     
-    @OneToOne
-    @JoinColumn(name = "requirement_id", nullable = false)
+    @DBRef
     private DeviceRequirement requirement;
     
-    @Column(nullable = false)
     private String architectureName;
-    
-    @Column(length = 1000)
     private String description;
     
-    @OneToMany(mappedBy = "architecture", cascade = CascadeType.ALL, orphanRemoval = true)
+    // Embed components directly (better performance for tightly coupled data)
     @Builder.Default
     private List<SystemComponent> components = new ArrayList<>();
     
     // Graph modeling: Component dependencies
-    @ElementCollection
-    @CollectionTable(name = "component_dependencies", joinColumns = @JoinColumn(name = "architecture_id"))
-    @MapKeyColumn(name = "component_name")
-    @Column(name = "depends_on")
-    private java.util.Map<String, String> dependencyGraph = new java.util.HashMap<>();
+    @Builder.Default
+    private Map<String, String> dependencyGraph = new HashMap<>();
     
-    @Column(nullable = false)
     private Double confidenceScore; // AI confidence in architecture
-    
-    @Column(nullable = false)
     private Integer complexityScore; // 1-100
-    
-    @Column(nullable = false)
     private Double estimatedCost; // USD
-    
-    @Column(nullable = false)
     private Integer reliabilityScore; // 1-100
     
-    @Column(nullable = false)
     private LocalDateTime generatedAt;
-    
-    @Column(nullable = false)
     private LocalDateTime updatedAt;
-    
-    @Enumerated(EnumType.STRING)
     private ArchitectureStatus status;
     
-    @PrePersist
-    protected void onCreate() {
+    public void onCreate() {
         generatedAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         if (status == null) {
@@ -73,8 +55,7 @@ public class SystemArchitecture {
         }
     }
     
-    @PreUpdate
-    protected void onUpdate() {
+    public void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
     

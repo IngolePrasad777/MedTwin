@@ -27,8 +27,7 @@ public class ArchitectureGenerationService {
     private final KnowledgeService knowledgeService;
     private final ConstraintValidationService constraintValidationService;
     
-    @Transactional
-    public SystemArchitecture generateArchitecture(Long requirementId) {
+    public SystemArchitecture generateArchitecture(String requirementId) {
         log.info("Generating architecture for requirement ID: {}", requirementId);
         
         DeviceRequirement requirement = requirementService.getRequirement(requirementId);
@@ -69,6 +68,9 @@ public class ArchitectureGenerationService {
         log.info("Applying compliance constraints...");
         applyComplianceConstraints(architecture, complianceClauses);
         
+        // Initialize timestamps
+        architecture.onCreate();
+        
         // Calculate metrics
         calculateArchitectureMetrics(architecture);
         
@@ -102,6 +104,10 @@ public class ArchitectureGenerationService {
     private void applyRAGDrivenModifications(SystemArchitecture architecture,
                                             List<KnowledgeService.ComplianceClause> clauses,
                                             List<KnowledgeService.DesignPattern> patterns) {
+        // Null safety
+        if (clauses == null) clauses = new ArrayList<>();
+        if (patterns == null) patterns = new ArrayList<>();
+        
         List<SystemComponent> modifications = new ArrayList<>();
         StringBuilder ragLog = new StringBuilder("RAG-driven modifications:\n");
         
@@ -112,7 +118,6 @@ public class ArchitectureGenerationService {
         if (thermalClauseFound) {
             log.info("High-relevance thermal safety clause detected - adding enhanced cooling system");
             SystemComponent coolingSystem = SystemComponent.builder()
-                    .architecture(architecture)
                     .componentName("Enhanced Cooling System")
                     .componentType("Thermal")
                     .description("RAG-recommended: Added due to IEC 60601-1 thermal safety requirements")
@@ -135,12 +140,11 @@ public class ArchitectureGenerationService {
         
         // Check redundancy patterns
         boolean redundancyPatternFound = patterns.stream()
-                .anyMatch(p -> p.getPatternName().contains("Redundant") && p.getApplicabilityScore() > 0.8);
+                .anyMatch(p -> p.getName().contains("Redundant") && p.getApplicabilityScore() > 0.8);
         
         if (redundancyPatternFound) {
             log.info("High-applicability redundancy pattern detected - adding backup sensor");
             SystemComponent backupSensor = SystemComponent.builder()
-                    .architecture(architecture)
                     .componentName("Backup Sensor Array")
                     .componentType("Sensor")
                     .description("RAG-recommended: Added for redundancy pattern compliance")
@@ -192,6 +196,11 @@ public class ArchitectureGenerationService {
      */
     private void buildDependencyGraph(SystemArchitecture architecture) {
         java.util.Map<String, String> graph = new java.util.HashMap<>();
+        
+        // Null safety - ensure components list exists
+        if (architecture.getComponents() == null) {
+            architecture.setComponents(new ArrayList<>());
+        }
         
         // Define dependencies based on component types
         for (SystemComponent component : architecture.getComponents()) {
@@ -246,7 +255,7 @@ public class ArchitectureGenerationService {
             // Apply specific constraints based on clause
             if (clause.getCategory().equals("Thermal Safety")) {
                 // Ensure thermal management is adequate
-                enforceTherm alSafety(architecture);
+                enforceThermalSafety(architecture);
             } else if (clause.getCategory().equals("Power Management")) {
                 // Ensure battery capacity is adequate
                 enforcePowerRequirements(architecture);
@@ -330,7 +339,6 @@ public class ArchitectureGenerationService {
         String suggestedPart = requirement.getProcessingPower() > 80 ? "STM32H7 (480MHz)" : "STM32F4 (180MHz)";
         
         return SystemComponent.builder()
-                .architecture(architecture)
                 .componentName("Main Controller")
                 .componentType("Controller")
                 .description("Primary processing unit for device control logic")
@@ -350,7 +358,6 @@ public class ArchitectureGenerationService {
     
     private SystemComponent createSensorArray(DeviceRequirement requirement, SystemArchitecture architecture) {
         return SystemComponent.builder()
-                .architecture(architecture)
                 .componentName("Sensor Array")
                 .componentType("Sensor")
                 .description("Multi-sensor array for real-time monitoring")
@@ -370,7 +377,6 @@ public class ArchitectureGenerationService {
     
     private SystemComponent createPowerManagement(DeviceRequirement requirement, SystemArchitecture architecture) {
         return SystemComponent.builder()
-                .architecture(architecture)
                 .componentName("Power Management Unit")
                 .componentType("Power")
                 .description("Battery management and power distribution")
@@ -390,7 +396,6 @@ public class ArchitectureGenerationService {
     
     private SystemComponent createUserInterface(DeviceRequirement requirement, SystemArchitecture architecture) {
         return SystemComponent.builder()
-                .architecture(architecture)
                 .componentName("User Interface")
                 .componentType("UI")
                 .description("Touchscreen display and user controls")
@@ -410,7 +415,6 @@ public class ArchitectureGenerationService {
     
     private SystemComponent createSecurityModule(DeviceRequirement requirement, SystemArchitecture architecture) {
         return SystemComponent.builder()
-                .architecture(architecture)
                 .componentName("Security Module")
                 .componentType("Security")
                 .description("Hardware security and encryption")
@@ -430,7 +434,6 @@ public class ArchitectureGenerationService {
     
     private SystemComponent createCommunicationModule(DeviceRequirement requirement, SystemArchitecture architecture) {
         return SystemComponent.builder()
-                .architecture(architecture)
                 .componentName("Communication Module")
                 .componentType("Communication")
                 .description("WiFi, Bluetooth, and Ethernet connectivity")
@@ -450,7 +453,6 @@ public class ArchitectureGenerationService {
     
     private SystemComponent createAirflowControl(DeviceRequirement requirement, SystemArchitecture architecture) {
         return SystemComponent.builder()
-                .architecture(architecture)
                 .componentName("Airflow Control System")
                 .componentType("Actuator")
                 .description("Precision airflow control and regulation")
@@ -493,12 +495,12 @@ public class ArchitectureGenerationService {
         return Math.min(100, complexity);
     }
     
-    public SystemArchitecture getArchitecture(Long id) {
+    public SystemArchitecture getArchitecture(String id) {
         return architectureRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Architecture not found with ID: " + id));
     }
     
-    public SystemArchitecture getArchitectureByRequirement(Long requirementId) {
+    public SystemArchitecture getArchitectureByRequirement(String requirementId) {
         return architectureRepository.findByRequirementId(requirementId)
                 .orElseThrow(() -> new IllegalArgumentException("Architecture not found for requirement ID: " + requirementId));
     }

@@ -50,7 +50,7 @@ public class MedTwinController {
     
     @PostMapping("/system/full-analysis/{architectureId}")
     public ResponseEntity<SystemAnalysisResult> runFullAnalysis(
-            @PathVariable Long architectureId,
+            @PathVariable String architectureId,
             @Valid @RequestBody SimulationEngineService.SimulationParameters params) {
         log.info("POST /api/system/full-analysis/{} - Running full system analysis", architectureId);
         SystemAnalysisResult result = systemOrchestrationService.runFullAnalysis(architectureId, params);
@@ -58,7 +58,7 @@ public class MedTwinController {
     }
     
     @GetMapping("/system/executive-summary/{architectureId}")
-    public ResponseEntity<ExecutiveSummary> getExecutiveSummary(@PathVariable Long architectureId) {
+    public ResponseEntity<ExecutiveSummary> getExecutiveSummary(@PathVariable String architectureId) {
         log.info("GET /api/system/executive-summary/{} - Generating executive summary", architectureId);
         ExecutiveSummary summary = systemOrchestrationService.getExecutiveSummary(architectureId);
         return ResponseEntity.ok(summary);
@@ -74,7 +74,7 @@ public class MedTwinController {
     }
     
     @GetMapping("/requirements/{id}")
-    public ResponseEntity<DeviceRequirement> getRequirement(@PathVariable Long id) {
+    public ResponseEntity<DeviceRequirement> getRequirement(@PathVariable String id) {
         log.info("GET /api/requirements/{} - Fetching requirement", id);
         return ResponseEntity.ok(requirementService.getRequirement(id));
     }
@@ -93,7 +93,7 @@ public class MedTwinController {
     
     @PutMapping("/requirements/{id}")
     public ResponseEntity<DeviceRequirement> updateRequirement(
-            @PathVariable Long id,
+            @PathVariable String id,
             @Valid @RequestBody DeviceRequirement requirement) {
         log.info("PUT /api/requirements/{} - Updating requirement", id);
         return ResponseEntity.ok(requirementService.updateRequirement(id, requirement));
@@ -102,20 +102,20 @@ public class MedTwinController {
     // ==================== Capability 2: Architecture API ====================
     
     @PostMapping("/architecture/generate/{requirementId}")
-    public ResponseEntity<SystemArchitecture> generateArchitecture(@PathVariable Long requirementId) {
+    public ResponseEntity<SystemArchitecture> generateArchitecture(@PathVariable String requirementId) {
         log.info("POST /api/architecture/generate/{} - Generating architecture", requirementId);
         SystemArchitecture architecture = architectureService.generateArchitecture(requirementId);
         return ResponseEntity.status(HttpStatus.CREATED).body(architecture);
     }
     
     @GetMapping("/architecture/{id}")
-    public ResponseEntity<SystemArchitecture> getArchitecture(@PathVariable Long id) {
+    public ResponseEntity<SystemArchitecture> getArchitecture(@PathVariable String id) {
         log.info("GET /api/architecture/{} - Fetching architecture", id);
         return ResponseEntity.ok(architectureService.getArchitecture(id));
     }
     
     @GetMapping("/architecture/requirement/{requirementId}")
-    public ResponseEntity<SystemArchitecture> getArchitectureByRequirement(@PathVariable Long requirementId) {
+    public ResponseEntity<SystemArchitecture> getArchitectureByRequirement(@PathVariable String requirementId) {
         log.info("GET /api/architecture/requirement/{} - Fetching architecture by requirement", requirementId);
         return ResponseEntity.ok(architectureService.getArchitectureByRequirement(requirementId));
     }
@@ -123,21 +123,21 @@ public class MedTwinController {
     // ==================== Capability 3: Digital Twin API ====================
     
     @PostMapping("/twin/initialize/{architectureId}")
-    public ResponseEntity<DigitalTwinState> initializeTwin(@PathVariable Long architectureId) {
+    public ResponseEntity<DigitalTwinState> initializeTwin(@PathVariable String architectureId) {
         log.info("POST /api/twin/initialize/{} - Initializing digital twin", architectureId);
         DigitalTwinState state = twinStateService.createInitialState(architectureId);
         return ResponseEntity.status(HttpStatus.CREATED).body(state);
     }
     
     @GetMapping("/twin/state/{architectureId}")
-    public ResponseEntity<DigitalTwinState> getCurrentState(@PathVariable Long architectureId) {
+    public ResponseEntity<DigitalTwinState> getCurrentState(@PathVariable String architectureId) {
         log.info("GET /api/twin/state/{} - Fetching current state", architectureId);
         return ResponseEntity.ok(twinStateService.getCurrentState(architectureId));
     }
     
     @PutMapping("/twin/state/{architectureId}")
     public ResponseEntity<DigitalTwinState> updateState(
-            @PathVariable Long architectureId,
+            @PathVariable String architectureId,
             @RequestBody DigitalTwinState state) {
         log.info("PUT /api/twin/state/{} - Updating state", architectureId);
         return ResponseEntity.ok(twinStateService.updateState(architectureId, state));
@@ -145,14 +145,14 @@ public class MedTwinController {
     
     @GetMapping("/twin/history/{architectureId}")
     public ResponseEntity<List<DigitalTwinState>> getStateHistory(
-            @PathVariable Long architectureId,
+            @PathVariable String architectureId,
             @RequestParam(defaultValue = "10") int limit) {
         log.info("GET /api/twin/history/{} - Fetching state history (limit: {})", architectureId, limit);
         return ResponseEntity.ok(twinStateService.getStateHistory(architectureId, limit));
     }
     
     @PostMapping("/twin/deactivate/{architectureId}")
-    public ResponseEntity<Void> deactivateTwin(@PathVariable Long architectureId) {
+    public ResponseEntity<Void> deactivateTwin(@PathVariable String architectureId) {
         log.info("POST /api/twin/deactivate/{} - Deactivating twin", architectureId);
         twinStateService.deactivateState(architectureId);
         return ResponseEntity.ok().build();
@@ -162,7 +162,7 @@ public class MedTwinController {
     
     @PostMapping("/simulation/run/{architectureId}")
     public ResponseEntity<SimulationRun> runSimulation(
-            @PathVariable Long architectureId,
+            @PathVariable String architectureId,
             @Valid @RequestBody SimulationEngineService.SimulationParameters params) {
         log.info("POST /api/simulation/run/{} - Running simulation: {}", architectureId, params.getScenarioName());
         SimulationRun simulation = simulationService.runSimulation(architectureId, params);
@@ -174,26 +174,26 @@ public class MedTwinController {
     }
     
     @GetMapping("/simulation/{id}")
-    public ResponseEntity<SimulationRun> getSimulation(@PathVariable Long id) {
+    public ResponseEntity<SimulationRun> getSimulation(@PathVariable String id) {
         log.info("GET /api/simulation/{} - Fetching simulation", id);
         return ResponseEntity.ok(simulationService.getSimulation(id));
     }
     
     @GetMapping("/simulation/architecture/{architectureId}")
-    public ResponseEntity<List<SimulationRun>> getSimulationsByArchitecture(@PathVariable Long architectureId) {
+    public ResponseEntity<List<SimulationRun>> getSimulationsByArchitecture(@PathVariable String architectureId) {
         log.info("GET /api/simulation/architecture/{} - Fetching simulations", architectureId);
         return ResponseEntity.ok(simulationService.getSimulationsByArchitecture(architectureId));
     }
     
     @GetMapping("/simulation/optimize/{architectureId}")
     public ResponseEntity<SimulationEngineService.SimulationParameters> getOptimizedParameters(
-            @PathVariable Long architectureId) {
+            @PathVariable String architectureId) {
         log.info("GET /api/simulation/optimize/{} - Generating optimized parameters", architectureId);
         return ResponseEntity.ok(simulationService.generateOptimizedParameters(architectureId));
     }
     
     @GetMapping("/simulation/optimize-detailed/{architectureId}")
-    public ResponseEntity<OptimizationResult> getDetailedOptimization(@PathVariable Long architectureId) {
+    public ResponseEntity<OptimizationResult> getDetailedOptimization(@PathVariable String architectureId) {
         log.info("GET /api/simulation/optimize-detailed/{} - Generating detailed optimization with before/after comparison", architectureId);
         OptimizationResult result = simulationService.generateOptimizedParametersWithComparison(architectureId);
         return ResponseEntity.ok(result);
@@ -201,7 +201,7 @@ public class MedTwinController {
     
     @PostMapping("/simulation/compare/{architectureId}")
     public ResponseEntity<ScenarioComparison> compareScenarios(
-            @PathVariable Long architectureId,
+            @PathVariable String architectureId,
             @RequestBody Map<String, SimulationEngineService.SimulationParameters> scenarios) {
         log.info("POST /api/simulation/compare/{} - Comparing scenarios", architectureId);
         
@@ -219,27 +219,27 @@ public class MedTwinController {
     // ==================== Capability 5: AI Insights API ====================
     
     @PostMapping("/insights/simulation/{simulationId}")
-    public ResponseEntity<List<AIInsight>> generateSimulationInsights(@PathVariable Long simulationId) {
+    public ResponseEntity<List<AIInsight>> generateSimulationInsights(@PathVariable String simulationId) {
         log.info("POST /api/insights/simulation/{} - Generating insights", simulationId);
         List<AIInsight> insights = aiInsightService.generateInsightsForSimulation(simulationId);
         return ResponseEntity.status(HttpStatus.CREATED).body(insights);
     }
     
     @PostMapping("/insights/architecture/{architectureId}")
-    public ResponseEntity<List<AIInsight>> generateArchitectureInsights(@PathVariable Long architectureId) {
+    public ResponseEntity<List<AIInsight>> generateArchitectureInsights(@PathVariable String architectureId) {
         log.info("POST /api/insights/architecture/{} - Generating insights", architectureId);
         List<AIInsight> insights = aiInsightService.generateInsightsForArchitecture(architectureId);
         return ResponseEntity.status(HttpStatus.CREATED).body(insights);
     }
     
     @GetMapping("/insights/simulation/{simulationId}")
-    public ResponseEntity<List<AIInsight>> getSimulationInsights(@PathVariable Long simulationId) {
+    public ResponseEntity<List<AIInsight>> getSimulationInsights(@PathVariable String simulationId) {
         log.info("GET /api/insights/simulation/{} - Fetching insights", simulationId);
         return ResponseEntity.ok(aiInsightService.getInsightsForSimulation(simulationId));
     }
     
     @GetMapping("/insights/architecture/{architectureId}")
-    public ResponseEntity<List<AIInsight>> getArchitectureInsights(@PathVariable Long architectureId) {
+    public ResponseEntity<List<AIInsight>> getArchitectureInsights(@PathVariable String architectureId) {
         log.info("GET /api/insights/architecture/{} - Fetching insights", architectureId);
         return ResponseEntity.ok(aiInsightService.getInsightsForArchitecture(architectureId));
     }
@@ -251,7 +251,7 @@ public class MedTwinController {
     }
     
     @GetMapping("/insights/compliance/{simulationId}")
-    public ResponseEntity<List<ComplianceCheck>> getComplianceChecks(@PathVariable Long simulationId) {
+    public ResponseEntity<List<ComplianceCheck>> getComplianceChecks(@PathVariable String simulationId) {
         log.info("GET /api/insights/compliance/{} - Generating compliance checks", simulationId);
         List<ComplianceCheck> checks = aiInsightService.generateComplianceChecks(simulationId);
         return ResponseEntity.ok(checks);
@@ -260,30 +260,30 @@ public class MedTwinController {
     // ==================== Knowledge Service API (RAG Layer) ====================
     
     @GetMapping("/knowledge/compliance/{deviceType}")
-    public ResponseEntity<List<KnowledgeService.KnowledgeItem>> getComplianceClauses(@PathVariable String deviceType) {
+    public ResponseEntity<List<KnowledgeService.ComplianceClause>> getComplianceClauses(@PathVariable String deviceType) {
         log.info("GET /api/knowledge/compliance/{} - Retrieving compliance clauses", deviceType);
-        List<KnowledgeService.KnowledgeItem> clauses = knowledgeService.getRelevantComplianceClauses(deviceType);
+        List<KnowledgeService.ComplianceClause> clauses = knowledgeService.getRelevantComplianceClauses(deviceType, "architecture generation");
         return ResponseEntity.ok(clauses);
     }
     
     @GetMapping("/knowledge/patterns/{deviceType}")
-    public ResponseEntity<List<KnowledgeService.KnowledgeItem>> getDesignPatterns(@PathVariable String deviceType) {
+    public ResponseEntity<List<KnowledgeService.DesignPattern>> getDesignPatterns(@PathVariable String deviceType) {
         log.info("GET /api/knowledge/patterns/{} - Retrieving design patterns", deviceType);
-        List<KnowledgeService.KnowledgeItem> patterns = knowledgeService.retrieveDesignPatterns(deviceType);
+        List<KnowledgeService.DesignPattern> patterns = knowledgeService.retrieveDesignPatterns(deviceType, new java.util.HashMap<>());
         return ResponseEntity.ok(patterns);
     }
     
     @GetMapping("/knowledge/recommendations/{deviceType}")
     public ResponseEntity<List<String>> getContextualRecommendations(@PathVariable String deviceType) {
         log.info("GET /api/knowledge/recommendations/{} - Retrieving contextual recommendations", deviceType);
-        List<String> recommendations = knowledgeService.getContextualRecommendations(deviceType);
+        List<String> recommendations = knowledgeService.getContextualRecommendations(deviceType, "general");
         return ResponseEntity.ok(recommendations);
     }
     
     // ==================== Constraint Validation API ====================
     
     @PostMapping("/validation/architecture/{id}")
-    public ResponseEntity<ConstraintValidationService.ValidationResult> validateArchitecture(@PathVariable Long id) {
+    public ResponseEntity<ConstraintValidationService.ValidationResult> validateArchitecture(@PathVariable String id) {
         log.info("POST /api/validation/architecture/{} - Validating architecture", id);
         SystemArchitecture architecture = architectureService.getArchitecture(id);
         ConstraintValidationService.ValidationResult result = constraintValidationService.validateArchitecture(architecture);
@@ -291,7 +291,7 @@ public class MedTwinController {
     }
     
     @PostMapping("/validation/simulation/{id}")
-    public ResponseEntity<ConstraintValidationService.ValidationResult> validateSimulation(@PathVariable Long id) {
+    public ResponseEntity<ConstraintValidationService.ValidationResult> validateSimulation(@PathVariable String id) {
         log.info("POST /api/validation/simulation/{} - Validating simulation", id);
         SimulationRun simulation = simulationService.getSimulation(id);
         ConstraintValidationService.ValidationResult result = constraintValidationService.validateSimulation(simulation);
@@ -302,7 +302,7 @@ public class MedTwinController {
     
     @PostMapping("/simulation/run-async/{architectureId}")
     public ResponseEntity<Map<String, String>> runSimulationAsync(
-            @PathVariable Long architectureId,
+            @PathVariable String architectureId,
             @Valid @RequestBody SimulationEngineService.SimulationParameters params) {
         log.info("POST /api/simulation/run-async/{} - Starting async simulation: {}", architectureId, params.getScenarioName());
         
@@ -312,7 +312,7 @@ public class MedTwinController {
         return ResponseEntity.accepted().body(Map.of(
                 "status", "ACCEPTED",
                 "message", "Simulation started in background. Check /api/simulation/architecture/" + architectureId + " for results.",
-                "architectureId", architectureId.toString(),
+                "architectureId", architectureId,
                 "scenarioName", params.getScenarioName(),
                 "engineVersion", ENGINE_VERSION
         ));
